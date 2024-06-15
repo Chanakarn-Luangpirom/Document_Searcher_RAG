@@ -6,8 +6,13 @@ from document_searcher import letter_tokenizer, preprocess_text, generate_prompt
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import pandas as pd
 import google.generativeai as genai
+import pickle
 from keys import GEMINI_API_KEY
 from streamlit_feedback import streamlit_feedback
+from googleDriveUpload import upload_json_to_google_drive
+from datetime import datetime
+
+
 
 
 st.set_page_config(page_title = 'Multipage App')
@@ -30,15 +35,17 @@ gt = load_documents()
 d = load_document_searcher(gt)
 llm_model = load_llm()
 
-rerank_flag = st.sidebar.radio(
-    "Would you like the documents to be reranked?",
-    ("Yes","No")
-)
 
 scoring_model = st.sidebar.radio(
         "Choose a scoring model",
         ("TF-IDF", "BERT_THAI_EMBEDDINGS","Ensemble")
     )
+
+
+rerank_flag = st.sidebar.radio(
+    "Would you like the documents to be reranked?",
+    ("Yes","No")
+)
 
 num_sections = st.sidebar.slider(
     "Input number of sections queried",
@@ -52,17 +59,23 @@ num_questions = st.sidebar.slider(
 
 def _submit_feedback(user_response, emoji=None):
     st.toast(f"Feedback submitted: {user_response}", icon=emoji)
-    feedback_store = []
     thumb = user_response['score']
     feedback = user_response['text']
     user_input = st.session_state.messages[-2]['content']
     llm_output = st.session_state.messages[-1]['content']
-    feedback_store.append(thumb)
-    feedback_store.append(feedback)
-    feedback_store.append(user_input)
-    feedback_store.append(llm_output)
+    data = {
+    'thumb': thumb,
+    'feedback': feedback,
+    'user_input': user_input,
+    'llm_output': llm_output
+    }
 
-    
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)   
+    upload_json_to_google_drive(data,current_time,parent_folder_id='1i307DYh9OFoPC6AkxI1rTwrhC0J3HKO-') # Folder to store feedback
+
+
 
 
 # Streamed response emulator
