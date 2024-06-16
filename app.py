@@ -7,7 +7,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 import pandas as pd
 import google.generativeai as genai
 import pickle
-from keys import GEMINI_API_KEY
+import os
 from streamlit_feedback import streamlit_feedback
 from googleDriveUpload import upload_json_to_google_drive
 from datetime import datetime
@@ -28,7 +28,7 @@ def load_document_searcher(gt):
 
 @st.cache_resource
 def load_llm():
-    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=os.environ['GEMINI_API_KEY'])
     return genai.GenerativeModel('gemini-1.5-pro')
 
 gt = load_documents()

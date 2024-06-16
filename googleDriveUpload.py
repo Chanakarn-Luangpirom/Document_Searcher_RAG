@@ -1,7 +1,6 @@
 from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from keys import GOOGLE_SERVICE_ACCOUNT_FILE
 import os
 import time
 import json
@@ -9,9 +8,40 @@ import io
 from datetime import datetime
 import pandas as pd
 
+TYPE = os.environ["TYPE"]
+PROJECT_ID = os.environ["PROJECT_ID"]
+PRIVATE_KEY_ID = os.environ["PRIVATE_KEY_ID"]
+PRIVATE_KEY = os.environ["PRIVATE_KEY"].replace('\\n','\n')
+CLIENT_EMAIL = os.environ["CLIENT_EMAIL"]
+CLIENT_ID = os.environ["CLIENT_ID"]
+AUTH_URI = os.environ["AUTH_URI"]
+TOKEN_URI = os.environ["TOKEN_URI"]
+AUTH_PROVIDER = os.environ["AUTH_PROVIDER"]
+CLIENT_CERT_URL = os.environ["CLIENT_CERT_URL"]
+UNIVERSE_DOMAIN = os.environ["UNIVERSE_DOMAIN"]
+
+
+google_json = {
+  "type": TYPE,
+  "project_id": PROJECT_ID,
+  "private_key_id": PRIVATE_KEY_ID,
+  "private_key": PRIVATE_KEY,
+  "client_email": CLIENT_EMAIL,
+  "client_id": CLIENT_ID,
+  "auth_uri": AUTH_URI,
+  "token_uri": TOKEN_URI,
+  "auth_provider_x509_cert_url": AUTH_PROVIDER,
+  "client_x509_cert_url": CLIENT_CERT_URL,
+  "universe_domain": UNIVERSE_DOMAIN
+}
+
+google_json = json.dumps(google_json)
+google_json = json.loads(google_json)
+
 SCOPES = ['https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = GOOGLE_SERVICE_ACCOUNT_FILE
-creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+creds = service_account.Credentials.from_service_account_info(google_json, scopes=SCOPES)
+# print(creds)
+
 
 def create_foler_in_google_drive(name):
 

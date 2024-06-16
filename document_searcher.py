@@ -1,11 +1,11 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
-from keys import COHERE_API_KEY
+import os
 import cohere
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain_community.embeddings import HuggingFaceEmbeddings
-cohere_key = COHERE_API_KEY
+cohere_key = os.environ['COHERE_API_KEY']
 co = cohere.Client(cohere_key)
 gt = pd.read_excel('data/ground_truth.xlsx')
 
