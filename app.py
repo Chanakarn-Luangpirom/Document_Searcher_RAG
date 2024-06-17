@@ -11,6 +11,7 @@ import os
 from streamlit_feedback import streamlit_feedback
 from googleDriveUpload import upload_json_to_google_drive
 from datetime import datetime
+import re
 
 
 
@@ -24,7 +25,7 @@ def load_documents():
 
 @st.cache_resource
 def load_document_searcher(gt):
-    return DocSearcher(gt,embedding_model = HuggingFaceEmbeddings(model_name='mrp/simcse-model-m-bert-thai-cased'))
+    return DocSearcher(gt)
 
 @st.cache_resource
 def load_llm():
@@ -38,23 +39,23 @@ llm_model = load_llm()
 
 scoring_model = st.sidebar.radio(
         "Choose a scoring model",
-        ("TF-IDF", "BERT_THAI_EMBEDDINGS","Ensemble")
+        ("Ensemble","TF-IDF", "Google_Embeddings")
     )
 
 
 rerank_flag = st.sidebar.radio(
     "Would you like the documents to be reranked?",
-    ("Yes","No")
+    ("No","Yes")
 )
 
 num_sections = st.sidebar.slider(
     "Input number of sections queried",
-    1,5,5
+    1,3,1
     )
 
 num_questions = st.sidebar.slider(
-    "Input number of question queried",
-    num_sections,30,num_sections
+    "Input number of Q&A queried",
+    num_sections,12,3*num_sections
     )
 
 def _submit_feedback(user_response, emoji=None):
@@ -80,10 +81,10 @@ def _submit_feedback(user_response, emoji=None):
 
 # Streamed response emulator
 def response_generator(response):
-    for word in response.split():
-        yield word + " "
+    for chunk in re.split(r'(\s+)', response):
+        yield chunk
         time.sleep(0.01)
-
+        
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -113,23 +114,23 @@ if prompt := st.chat_input("Ask me anything!"):
     # Add user message to chat history
     if scoring_model == 'TF-IDF':
         retrieved_documents = d.query_documents(prompt,k = num_questions, method = 'tfidf', num_section = num_sections)
-        if rerank_flag == 'YES':
+        if rerank_flag == 'Yes':
             retrieved_documents = rerank_documents(prompt,retrieved_documents)
             output = generate_prompt(prompt,retrieved_documents,d.group_key)
         else:
             output = generate_prompt(prompt,retrieved_documents,d.group_key)
 
-    elif scoring_model == 'BERT_THAI_EMBEDDINGS':
+    elif scoring_model == 'Google_Embeddings':
         retrieved_documents = d.query_documents(prompt,k = num_questions, method = 'vector', num_section = num_sections)
-        if rerank_flag == 'YES':
+        if rerank_flag == 'Yes':
             retrieved_documents = rerank_documents(prompt,retrieved_documents)
             output = generate_prompt(prompt,retrieved_documents,d.group_key)
         else:
             output = generate_prompt(prompt,retrieved_documents,d.group_key)
 
-    elif scoring_model == 'EMSEMBLE':
+    elif scoring_model == 'Ensemble':
         retrieved_documents = d.query_documents(prompt,k = num_questions, method = 'all', num_section = num_sections)
-        if rerank_flag == 'YES':
+        if rerank_flag == 'Yes':
             retrieved_documents = rerank_documents(prompt,retrieved_documents)
             output = generate_prompt(prompt,retrieved_documents,d.group_key)
         else:
@@ -146,10 +147,9 @@ if prompt := st.chat_input("Ask me anything!"):
     with st.chat_message("assistant"):
         if output != "Not confident enough to generate prompt":
             response = st.write_stream(response_generator('The Given Context:' + output))
+            st.session_state.messages.append({"role": "assistant", "content": response})
             llm_response = llm_model.generate_content(output)
             response = st.write_stream(response_generator(str(llm_response.text)))
-
-
 
         else:
             response = st.write_stream(response_generator(output))

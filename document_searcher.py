@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain_community.embeddings import HuggingFaceEmbeddings
+import google.generativeai as genai
 cohere_key = os.environ['COHERE_API_KEY']
 co = cohere.Client(cohere_key)
 gt = pd.read_excel('data/ground_truth.xlsx')
-
+genai.configure(api_key=os.environ['GEMINI_API_KEY'])
 
 def letter_tokenizer(word,n = 3):
     tokens = []
@@ -27,19 +28,18 @@ def generate_prompt(q,retrieved_documents,group_key):
     else:
         context_string = ""
         for section,context in retrieved_documents.items():
-            context_string += '-------' + group_key[section] + '-------'
+            context_string += '-------' + group_key[section] + '-------\n\n'
             context_string += ' '.join(context)
-            context_string += '\n'
+            context_string += '\n\n'
     
         prompt = """ 
-    Based on the context below answer the given question. Given Question: {}
-    ----------------------------- Context -----------------------------
-    {}
-        """.format(q,context_string) 
+    Based on the context below answer the given question. \n\n Given Question: {} \n\n
+    ----------------------------- Context ----------------------------- \n\n {}
+""".format(q,context_string) 
     
         return prompt
 
-def rerank_documents(q,context_group,frac = 0.7):
+def rerank_documents(q,context_group,frac = 1):
     if context_group == None:
         return None
     reranked_context = {}
@@ -57,12 +57,13 @@ def rerank_documents(q,context_group,frac = 0.7):
     return reranked_context
 
 class DocSearcher:
-    def __init__(self,docs,embedding_model):
-        docs['context_embedding'] = docs['Question'].apply(lambda x: embedding_model.embed_query(x))
+    def __init__(self,docs):
+        docs['init_Q_A'] = docs['Question'] + docs['Answer']
+        embeddings = genai.embed_content(model = 'models/text-embedding-004',content = docs['init_Q_A'].tolist())
+        docs['context_embedding'] = embeddings['embedding']
         docs['Group_short'] = docs['Group_short'].astype(str)
         group_key = docs[['Group_short','Group']].drop_duplicates()
         group_key = dict(zip(group_key['Group_short'], group_key['Group']))
-        self.emb = embedding_model
         self.docs = docs
         self.group_key = group_key
 
@@ -93,8 +94,8 @@ class DocSearcher:
         docs = self.docs
         docs['q_a'] = '\n Question: ' + docs['Question'] + '\n Answer: ' + docs['Answer']
         if method == 'all':
-            scores_tfidf = self.get_section_tfidf_scores(q)
             scores_vector = self.get_section_vector_scores(q)
+            scores_tfidf = self.get_section_tfidf_scores(q)
             scores_combined = {section: (scores_tfidf[section] + scores_vector[section])/2 for section in scores_vector}
             is_confident, context = self._get_context_from_scores(section_scores = scores_combined,num_section = num_section,k = k)
             if is_confident == True:
@@ -159,9 +160,8 @@ class DocSearcher:
         return scores_tfidf
 
     def get_section_vector_scores(self,q):
-        emb = self.emb
         docs = self.docs 
-        query_embedding = np.array(emb.embed_query(q)).reshape(1,-1)
+        query_embedding = np.array(genai.embed_content(model = 'models/text-embedding-004',content = q)['embedding']).reshape(1,-1)
         context_embeddings = np.array(docs['context_embedding'].tolist())
         scores_vector = cosine_similarity(context_embeddings, query_embedding).flatten()
         docs['similarity_score_vector'] = scores_vector
@@ -169,4 +169,5 @@ class DocSearcher:
         self.docs = docs
         scores_vector = docs.groupby(['Group_short'])['similarity_score_vector'].mean().sort_values(ascending = False).to_dict()
         return scores_vector
+
 
