@@ -40,7 +40,6 @@ google_json = json.loads(google_json)
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 creds = service_account.Credentials.from_service_account_info(google_json, scopes=SCOPES)
-# print(creds)
 
 
 def create_foler_in_google_drive(name):
@@ -214,7 +213,7 @@ def delete_files_google_drive(file_ids = []):
             print('An error occurred:', e)
 
 
-def show_feedback(folder_id = '1i307DYh9OFoPC6AkxI1rTwrhC0J3HKO-'):
+def show_feedback(folder_id = '1-Z4ZVnyPhZLoIB6SIPU7TGJ8UHz9jWTh'):
     feedback_ids = list_files_in_google_drive_folder(folder_id)
     feedback_output = {}
     for feedback_id in feedback_ids:    
@@ -233,13 +232,13 @@ def show_feedback(folder_id = '1i307DYh9OFoPC6AkxI1rTwrhC0J3HKO-'):
     return feedback_ids, df
 
 
-def merge_json_feedback(folder_id = '1i307DYh9OFoPC6AkxI1rTwrhC0J3HKO-'):
+def merge_json_feedback(folder_id = '1-Z4ZVnyPhZLoIB6SIPU7TGJ8UHz9jWTh'):
     feedback_ids, df = show_feedback(folder_id)
     feedback_dict = {col: df[col].tolist() for col in df.columns}
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     try:
-        upload_json_to_google_drive(feedback_dict,current_time,parent_folder_id='1i307DYh9OFoPC6AkxI1rTwrhC0J3HKO-') # Folder to store feedback
+        upload_json_to_google_drive(feedback_dict,current_time,parent_folder_id='1-Z4ZVnyPhZLoIB6SIPU7TGJ8UHz9jWTh') # Folder to store feedback
         delete_files_google_drive(feedback_ids)
     except Exception as e:
         print(f'An error occurred: {e}')

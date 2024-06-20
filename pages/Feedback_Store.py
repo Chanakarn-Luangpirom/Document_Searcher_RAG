@@ -10,9 +10,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import json
+import time
 
-st.set_page_config(page_title = 'A page used for showing feedback.')
-st.header('A page used for showing feedback. WIP')
+st.set_page_config(page_title = 'Feedback Store')
+st.header('A page used for showing submitted feedback. Here you can view feedback given to the LLM app.')
 
-_, df = show_feedback()
-st.dataframe(df)
+with st.spinner('Downloading Feedback Data...'):
+    _, df = show_feedback()
+    st.dataframe(df)
+    
+
+
