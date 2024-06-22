@@ -10,7 +10,8 @@ Check out the Application here: https://documentsearcherrag-fkbbp7yij4ha6djpmfwk
 
 ## Dependencies
 To run the code in this repository, install the dependencies in requirements.txt
-Then, run ```streamlit run Application.py```
+Then, run the following code. \
+```streamlit run Application.py```
 
 
 
